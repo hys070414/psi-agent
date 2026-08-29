@@ -14,17 +14,17 @@ The initial Skills/Tools Setup is **identical** for all four benchmarks. This en
 
 ## Structure
 
-- `tools/` — 10 universal tools:
-  - `bash.py` — shell command execution (120s default timeout)
+- `tools/` — 11 universal tools:
+  - `bash.py` — shell command execution (fresh `bash -lc` per call; 120s default timeout; output truncated)
   - `read.py` — file reading with offset/limit
   - `write.py` — file creation/overwrite
   - `edit.py` — precise string replacement
-  - `search.py` — file finding (glob) + content search (grep)
+  - `search.py` — file finding (glob, supports `**`) + content search (regex)
   - `list_dir.py` — directory browsing (flat or recursive)
-  - `background_start.py` — launch detached long-running processes
-  - `background_stop.py` — terminate a background process by id
-  - `fetch.py` — URL retrieval as plain text (HTML stripped)
-  - `read_pdf.py` — PDF text extraction (pdftotext / pymupdf / pdfplumber)
+  - `background_start.py` — launch detached long-running processes (auto-captures stdout/stderr to a log file, returns `log_path`)
+  - `background_stop.py` — terminate a background process by id (also defines `background_list`)
+  - `fetch.py` — URL retrieval; main article extracted as Markdown (binary refused, output capped)
+  - `read_pdf.py` — PDF text extraction (pdftotext / pymupdf / pdfplumber; `force_ocr=True` for scanned PDFs via tesseract)
 - `skills/_universal/SKILL.md` — cross-benchmark working discipline (always-on)
 - `systems/system.py` — minimal system prompt builder + context compaction
 
@@ -48,20 +48,21 @@ The initial Skills/Tools Setup is **identical** for all four benchmarks. This en
 | tau2 | (mostly unused — agent converses via adapter) | tau2 domain API tools |
 | GAIA | bash, read, write, edit, search, list_dir, fetch, read_pdf | web_search (from GAIA adapter) |
 
-## Why these 10 tools
+## Why these tools
 
 | Tool | Why it's universal | Driven by |
 |------|-------------------|-----------|
-| bash | Atomic shell execution | All TB tasks |
+| bash | Fresh per-call shell execution (cwd/env/venv do not persist; chain with `&&`) | All TB tasks |
 | read | Read file contents | All benchmarks |
 | write | Create files / artifacts | TB 2.1/3.0, GAIA |
 | edit | Precise string replacement | TB 2.1/3.0 (code modification) |
-| search | Find files + grep contents | TB 2.1/3.0 (codebase exploration), GAIA |
+| search | Glob file finding (supports `**`) + regex content search | TB 2.1/3.0 (codebase exploration), GAIA |
 | list_dir | Browse directory tree | TB 2.1/3.0 (environment exploration), GAIA |
-| background_start | Long-running ML/compile/proof tasks | TB 2.1 (caffe-cifar-10, llm-inference), TB 3.0 (vllm, gpt2-codegolf, takens-embedding) |
+| background_start | Long-running ML/compile/proof tasks (auto-captures output to log file) | TB 2.1 (caffe-cifar-10, llm-inference), TB 3.0 (vllm, gpt2-codegolf, takens-embedding) |
 | background_stop | Terminate stuck processes | Companion to background_start |
-| fetch | Read web documentation / API refs | GAIA (research), TB (general docs) |
-| read_pdf | Extract text from PDF files | GAIA (file/multimodal tasks), TB (PDF docs) |
+| background_list | Inspect which background processes are alive | Companion to background_start |
+| fetch | Read web documentation / API refs as Markdown | GAIA (research), TB (general docs) |
+| read_pdf | Extract text from PDF files (incl. OCR fallback for scanned PDFs) | GAIA (file/multimodal tasks), TB (PDF docs) |
 
 ## Run
 

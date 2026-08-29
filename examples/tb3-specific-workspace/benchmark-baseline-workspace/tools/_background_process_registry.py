@@ -117,42 +117,55 @@ def _find_powershell() -> str:
     return "powershell"
 
 
-def shell_argv(command: str, *, shell: str = "auto") -> tuple[list[str], str]:
-    """Build argv for a detached shell running *command*."""
+def shell_argv(command: str, *, shell: str = "auto", log_path: str | None = None) -> tuple[list[str], str]:
+    """Build argv for a detached shell running *command*.
+
+    When *log_path* is given, the command is wrapped in the shell's own
+    output redirection so stdout+stderr are appended to that file. This keeps
+    the spawn implementation (DEVNULL) unchanged while still letting callers
+    capture long-running process output for later polling.
+    """
     command = command.strip()
     if not command:
         msg = "command must not be empty"
         raise ValueError(msg)
     mode = shell.strip().lower() or "auto"
+
+    # Determine which shell will run the command.
     if mode in ("powershell", "pwsh"):
-        pwsh = _find_powershell()
-        return [
-            pwsh,
-            "-NoProfile",
-            "-NonInteractive",
-            "-Command",
-            command,
-        ], "powershell"
-    if mode == "bash":
-        bash = _find_bash()
-        if not bash:
+        shell_name = "powershell"
+    elif mode == "bash":
+        if not _find_bash():
             msg = "bash executable was not found"
             raise ValueError(msg)
-        return [bash, "-lc", command], "bash"
-    bash = _find_bash()
-    if bash:
-        return [bash, "-lc", command], "bash"
-    if sys.platform == "win32":
+        shell_name = "bash"
+    else:  # auto
+        if _find_bash():
+            shell_name = "bash"
+        elif sys.platform == "win32":
+            shell_name = "powershell"
+        else:
+            shell_name = "sh"
+
+    # Optionally tee all output to a log file using the shell's own redirection.
+    if log_path:
+        if shell_name in ("bash", "sh"):
+            command = f"{command.rstrip()} >> \"{log_path}\" 2>&1"
+        elif shell_name == "powershell":
+            command = f"{command.rstrip()} *>> \"{log_path}\""
+
+    if shell_name == "powershell":
         pwsh = _find_powershell()
         return [
             pwsh,
             "-NoProfile",
             "-NonInteractive",
-            "-OutputFormat",
-            "Text",
             "-Command",
             command,
         ], "powershell"
+    if shell_name == "bash":
+        bash = _find_bash()
+        return [bash, "-lc", command], "bash"
     return ["sh", "-c", command], "sh"
 
 
@@ -254,7 +267,7 @@ async def _read_registry(path: anyio.Path) -> dict[str, Any]:
     try:
         raw = await path.read_text(encoding="utf-8")
         data = json.loads(raw)
-    except OSError, UnicodeDecodeError, json.JSONDecodeError:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return {"processes": {}}
     if not isinstance(data, dict):
         return {"processes": {}}
@@ -328,19 +341,21 @@ async def start_process(
             "pid": 0,
         }
 
+    workdir = cwd.strip() or _default_cwd(workspace)
+    bg_id = process_id.strip() or f"bg-{uuid.uuid4().hex[:16]}"
+    log_path = str(workspace / ".psi" / "background" / f"{bg_id}.log")
+    await (workspace / ".psi" / "background").mkdir(parents=True, exist_ok=True)
+
     try:
-        argv, shell_name = shell_argv(command, shell=shell)
+        argv, shell_name = shell_argv(command, shell=shell, log_path=log_path)
     except ValueError as exc:
         return {
             "ok": False,
             "status": "failed",
             "message": str(exc),
-            "process_id": "",
+            "process_id": bg_id,
             "pid": 0,
         }
-
-    workdir = cwd.strip() or _default_cwd(workspace)
-    bg_id = process_id.strip() or f"bg-{uuid.uuid4().hex[:16]}"
 
     try:
         process = await _spawn_detached(argv, cwd=workdir)
@@ -373,6 +388,7 @@ async def start_process(
         "cwd": workdir,
         "shell": shell_name,
         "argv": argv,
+        "log_path": log_path,
         "workspace": str(workspace),
         "created_at": now,
     }
@@ -395,6 +411,7 @@ async def start_process(
         "pid": pid,
         "shell": shell_name,
         "cwd": workdir,
+        "log_path": log_path,
         "workspace": str(workspace),
     }
 

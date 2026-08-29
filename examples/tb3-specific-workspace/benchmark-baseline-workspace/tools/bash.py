@@ -31,12 +31,22 @@ async def _find_bash() -> str | None:
     return shutil.which("bash")
 
 
-async def bash(command: str, timeout_seconds: int = 120) -> str:
+DEFAULT_MAX_OUTPUT_CHARS = 12000
+"""Hard cap on characters returned by a single bash call (guards the context window)."""
+
+
+async def bash(command: str, timeout_seconds: int = 120, max_output_chars: int = DEFAULT_MAX_OUTPUT_CHARS) -> str:
     """Execute a shell command and return its output.
+
+    Each call spawns a fresh ``bash -lc`` subprocess, so shell state (working
+    directory, exported variables, activated venvs) does NOT persist across
+    calls — chain dependent steps with ``&&`` inside one command.
 
     Args:
         command: The shell command to execute.
         timeout_seconds: Maximum seconds to wait for the command to complete.
+        max_output_chars: Maximum characters of combined stdout/stderr to return.
+            Longer output is truncated to a head+tail window with a note.
 
     Returns:
         Combined stdout and stderr output, with exit code appended on failure.
@@ -64,6 +74,15 @@ async def bash(command: str, timeout_seconds: int = 120) -> str:
     out = stdout.decode(errors="replace")
     err = stderr.decode(errors="replace")
     combined = (out + err).rstrip()
+
+    if len(combined) > max_output_chars:
+        head = max_output_chars // 2
+        tail = max_output_chars - head
+        combined = (
+            combined[:head]
+            + f"\n... [output truncated: {len(combined)} chars total, showing first {head} and last {tail}] ...\n"
+            + combined[-tail:]
+        )
 
     if process.returncode != 0:
         combined += f"\n[Exit code: {process.returncode}]"

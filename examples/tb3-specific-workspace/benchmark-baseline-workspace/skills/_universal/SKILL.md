@@ -44,8 +44,10 @@ Applies to every task regardless of domain or benchmark.
   evaluator's real cases as possible rather than guessing.
 
 ## Shell hygiene
-- The bash tool often spawns /bin/sh (dash), which rejects `set -o pipefail`.
-  Use `set -eu`, or invoke `bash -c '...'` explicitly when you need pipefail.
+- The bash tool runs each command in a **fresh `bash -lc` subprocess**: working
+  directory, exported environment variables, and activated venvs do **not** persist
+  across calls. Chain dependent steps in one command with `&&` (e.g.
+  `cd /path && python train.py`).
 - Probe for missing tools up front and fall back (e.g. od/stat/python3) rather
   than repeatedly retrying an absent utility.
 - To write a multi-line file, do NOT use a `cat <<'EOF' ... EOF` heredoc, and do
@@ -58,11 +60,12 @@ Applies to every task regardless of domain or benchmark.
 ## Long-running processes
 - For commands that exceed the 120s bash timeout (ML training, model inference,
   compilation, proof checking), use `background_start` to launch them detached.
-- After starting, note the log file path. Poll progress by reading the log
-  file (`read /tmp/psi_bg_<id>.log`) instead of blocking the bash tool.
-- If a background process is stuck or producing errors, stop it with
-  `background_stop` and restart with a different approach — don't let a dead
-  process consume your entire budget.
+- `background_start` returns a `log_path` (under `<workspace>/.psi/background/<id>.log`);
+  the process's stdout+stderr are **auto-appended** to that file. Poll progress by
+  reading the log file (`read <log_path>`) instead of blocking the bash tool.
+- Use `background_list` to check which background processes are still alive, and
+  `background_stop` to terminate a stuck or finished one — don't let a dead process
+  consume your entire budget.
 - For very long tasks (estimated >10 min expert time), start the longest-running
   step early in the background and work on other parts while it runs.
 
