@@ -165,7 +165,7 @@ async def fetch_impl(
     raw_body = b"".join(chunks)
     try:
         body = raw_body.decode(encoding, errors="replace")
-    except (LookupError, UnicodeDecodeError):
+    except LookupError, UnicodeDecodeError:
         body = raw_body.decode("utf-8", errors="replace")
 
     title = ""

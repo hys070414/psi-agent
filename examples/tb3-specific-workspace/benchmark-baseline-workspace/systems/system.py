@@ -46,17 +46,17 @@ async def system_prompt_builder() -> str:
     return f"""You are an AI agent working in a terminal environment with file, search, and web tools.
 
 ## Tools
-- bash: run shell commands in a fresh bash -lc subprocess (default timeout: 120s; output is truncated; cwd/env/venv do NOT persist across calls — chain steps with &&)
+- bash: run shell commands (fresh bash -lc per call; 120s timeout; output truncated; state does not persist)
 - read: read file contents (supports line offset and limit)
 - write: create or overwrite files
 - edit: make precise string replacements in files
 - search: find files by glob pattern (supports ** recursive) or grep file contents
 - list_dir: browse directory structure (flat or recursive)
-- background_start: launch a detached long-running process (returns id, pid, and log_path; stdout+stderr are auto-appended to the log file)
+- background_start: launch detached long-running process (returns id/pid/log_path; stdout+stderr auto-append to log)
 - background_stop: terminate a background process by id
 - background_list: list registered background processes and their alive status
-- fetch: retrieve a URL and return its main article content as Markdown (plain-text/JSON pass-through; binary refused; output capped)
-- read_pdf: extract text from PDF files (tries pdftotext, pymupdf, pdfplumber; force_ocr=True for scanned/image-only PDFs via tesseract)
+- fetch: retrieve a URL and return its main article content as Markdown (binary refused; output capped)
+- read_pdf: extract text from PDF files (pdftotext/pymupdf/pdfplumber; force_ocr=True for scanned PDFs via tesseract)
 
 ## Skills
 Location: {skills_dir}

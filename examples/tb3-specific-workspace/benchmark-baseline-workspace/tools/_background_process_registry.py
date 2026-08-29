@@ -130,17 +130,18 @@ def shell_argv(command: str, *, shell: str = "auto", log_path: str | None = None
         msg = "command must not be empty"
         raise ValueError(msg)
     mode = shell.strip().lower() or "auto"
+    bash_path = _find_bash()
 
     # Determine which shell will run the command.
     if mode in ("powershell", "pwsh"):
         shell_name = "powershell"
     elif mode == "bash":
-        if not _find_bash():
+        if not bash_path:
             msg = "bash executable was not found"
             raise ValueError(msg)
         shell_name = "bash"
     else:  # auto
-        if _find_bash():
+        if bash_path:
             shell_name = "bash"
         elif sys.platform == "win32":
             shell_name = "powershell"
@@ -150,9 +151,9 @@ def shell_argv(command: str, *, shell: str = "auto", log_path: str | None = None
     # Optionally tee all output to a log file using the shell's own redirection.
     if log_path:
         if shell_name in ("bash", "sh"):
-            command = f"{command.rstrip()} >> \"{log_path}\" 2>&1"
+            command = f'{command.rstrip()} >> "{log_path}" 2>&1'
         elif shell_name == "powershell":
-            command = f"{command.rstrip()} *>> \"{log_path}\""
+            command = f'{command.rstrip()} *>> "{log_path}"'
 
     if shell_name == "powershell":
         pwsh = _find_powershell()
@@ -164,8 +165,10 @@ def shell_argv(command: str, *, shell: str = "auto", log_path: str | None = None
             command,
         ], "powershell"
     if shell_name == "bash":
-        bash = _find_bash()
-        return [bash, "-lc", command], "bash"
+        if not bash_path:
+            msg = "bash executable was not found"
+            raise ValueError(msg)
+        return [bash_path, "-lc", command], "bash"
     return ["sh", "-c", command], "sh"
 
 
@@ -267,7 +270,7 @@ async def _read_registry(path: anyio.Path) -> dict[str, Any]:
     try:
         raw = await path.read_text(encoding="utf-8")
         data = json.loads(raw)
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+    except OSError, UnicodeDecodeError, json.JSONDecodeError:
         return {"processes": {}}
     if not isinstance(data, dict):
         return {"processes": {}}

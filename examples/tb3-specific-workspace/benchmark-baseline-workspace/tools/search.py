@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import anyio
+
 
 async def search(pattern: str, mode: str = "content", path: str = ".", max_results: int = 50) -> str:
     """Search for files by name or search file contents.
@@ -25,16 +27,18 @@ async def search(pattern: str, mode: str = "content", path: str = ".", max_resul
         Matching file paths (files mode) or grep-style output (content mode),
         or an error message.
     """
-    base = Path(path)
-    if not base.exists():
+    base = anyio.Path(path)
+    if not await base.exists():
         return f"[Error] Path not found: {path}"
-    if not base.is_dir():
+    if not await base.is_dir():
         return f"[Error] Not a directory: {path}"
 
+    base_fs = Path(str(base))
+
     if mode == "files":
-        return _search_files(base, pattern, max_results)
+        return _search_files(base_fs, pattern, max_results)
     if mode == "content":
-        return _search_content(base, pattern, max_results)
+        return _search_content(base_fs, pattern, max_results)
     return f"[Error] Unknown mode: {mode}. Use 'files' or 'content'."
 
 

@@ -65,8 +65,7 @@ async def read_pdf(
         if result is not None:
             return _cap(result, max_chars)
         return (
-            "[Error] OCR requested but pdftoppm/tesseract are not available, "
-            f"or OCR produced no text. File: {pdf_path}"
+            f"[Error] OCR requested but pdftoppm/tesseract are not available, or OCR produced no text. File: {pdf_path}"
         )
 
     return (
@@ -173,9 +172,7 @@ async def _try_ocr(bash: str, pdf_path: str, max_pages: int) -> str | None:
     try:
         with tempfile.TemporaryDirectory() as tmp:
             prefix = f"{tmp}/page"
-            render_cmd = (
-                f"pdftoppm -png -r 200 -f 1 -l {max_pages} '{pdf_path}' '{prefix}' 2>/dev/null"
-            )
+            render_cmd = f"pdftoppm -png -r 200 -f 1 -l {max_pages} '{pdf_path}' '{prefix}' 2>/dev/null"
             proc = await asyncio.create_subprocess_exec(
                 bash,
                 "-lc",
