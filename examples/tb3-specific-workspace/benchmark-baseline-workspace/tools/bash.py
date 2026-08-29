@@ -31,7 +31,7 @@ async def _find_bash() -> str | None:
     return shutil.which("bash")
 
 
-async def tool(command: str, timeout_seconds: int = 120) -> str:
+async def bash(command: str, timeout_seconds: int = 120) -> str:
     """Execute a shell command and return its output.
 
     Args:

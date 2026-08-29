@@ -1,6 +1,6 @@
 """Build the system prompt for the benchmark baseline workspace.
 
-A minimal workspace with 5 universal tools and 1 universal working-discipline
+A minimal workspace with 10 universal tools and 1 universal working-discipline
 skill. No domain skills, no benchmark-specific assumptions. Designed as the
 common baseline across TB 2.1, TB 3.0, tau2, and GAIA.
 """
@@ -43,7 +43,7 @@ async def system_prompt_builder() -> str:
     skills_text = "\n".join(skills) if skills else "(none)"
     universal_block = f"\n## Universal working discipline\n\n{universal}\n" if universal else ""
 
-    return f"""You are an AI agent working in a terminal environment with file and search tools.
+    return f"""You are an AI agent working in a terminal environment with file, search, and web tools.
 
 ## Tools
 - bash: run shell commands (default timeout: 120s)
@@ -51,6 +51,11 @@ async def system_prompt_builder() -> str:
 - write: create or overwrite files
 - edit: make precise string replacements in files
 - search: find files by name pattern or grep file contents
+- list_dir: browse directory structure (flat or recursive)
+- background_start: launch a detached long-running process (returns id + log path)
+- background_stop: terminate a background process by id
+- fetch: retrieve a URL and return its content as plain text
+- read_pdf: extract text from PDF files (tries pdftotext, pymupdf, pdfplumber)
 
 ## Skills
 Location: {skills_dir}

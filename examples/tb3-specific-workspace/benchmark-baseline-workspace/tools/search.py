@@ -6,7 +6,7 @@ import asyncio
 import shutil
 
 
-async def tool(pattern: str, mode: str = "content", path: str = ".", max_results: int = 50) -> str:
+async def search(pattern: str, mode: str = "content", path: str = ".", max_results: int = 50) -> str:
     """Search for files by name or search file contents.
 
     In "files" mode, uses find to locate files matching a glob pattern.

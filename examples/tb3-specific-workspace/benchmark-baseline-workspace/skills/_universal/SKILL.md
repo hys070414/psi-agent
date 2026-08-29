@@ -55,12 +55,35 @@ Applies to every task regardless of domain or benchmark.
     - **Short file**: build line-by-line with appends, each its own command:
       `: > /path/out` then `printf '%s\n' 'line1' >> /path/out`.
 
+## Long-running processes
+- For commands that exceed the 120s bash timeout (ML training, model inference,
+  compilation, proof checking), use `background_start` to launch them detached.
+- After starting, note the log file path. Poll progress by reading the log
+  file (`read /tmp/psi_bg_<id>.log`) instead of blocking the bash tool.
+- If a background process is stuck or producing errors, stop it with
+  `background_stop` and restart with a different approach — don't let a dead
+  process consume your entire budget.
+- For very long tasks (estimated >10 min expert time), start the longest-running
+  step early in the background and work on other parts while it runs.
+
+## External resources and compliance
+- `fetch` retrieves web pages as plain text — use it for reading documentation,
+  API references, or general reference material.
+- Do NOT use `fetch` (or any other tool) to search for or retrieve task-specific
+  solutions, hints, leaderboards, or published answers for the current task.
+  That is cheating and invalidates the evaluation.
+- If a task provides files in formats you cannot read with the basic tools
+  (PDFs, images, spreadsheets), use `read_pdf` for PDF text extraction.
+- Probe for available system tools up front: `which python3 && which pip && which gcc`
+  etc. Knowing what's installed saves repeated failures.
+
 ## Budget
 - Commit to an implementation early; reserve most of the budget for writing,
   building, and debugging. If the same approach fails repeatedly, switch
   strategy rather than retrying minor variations.
 - Don't let setup eat the budget. A slow install/compile should be ONE foreground
   command that runs to completion (chain a `&& echo __DONE__` marker), not a
-  background job you poll across many empty turns.
+  background job you poll across many empty turns — UNLESS it genuinely exceeds
+  the 120s timeout, in which case use `background_start`.
 - Watch the clock: if verification passes and you have spent a large share of
   the budget, finalize now rather than polishing.
