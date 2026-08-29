@@ -60,7 +60,9 @@ async def _try_pdftotext(bash: str, pdf_path: str, max_pages: int) -> str | None
         return None
     try:
         proc = await asyncio.create_subprocess_exec(
-            bash, "-lc", f"pdftotext -l {max_pages} '{pdf_path}' - 2>/dev/null",
+            bash,
+            "-lc",
+            f"pdftotext -l {max_pages} '{pdf_path}' - 2>/dev/null",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -88,7 +90,9 @@ print(chr(10).join(pages))
 " 2>/dev/null"""
     try:
         proc = await asyncio.create_subprocess_exec(
-            bash, "-lc", script,
+            bash,
+            "-lc",
+            script,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -118,7 +122,9 @@ print(chr(10).join(pages))
 " 2>/dev/null"""
     try:
         proc = await asyncio.create_subprocess_exec(
-            bash, "-lc", script,
+            bash,
+            "-lc",
+            script,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
